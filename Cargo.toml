@@ -1,0 +1,10 @@
+[package]
+name = "wolfsbane"
+version = "0.1.0"
+authors = ["MT <mtesseracttech@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+glium = "*"
+straal = { git = "https://github.com/mtesseracttech/straal" }
+vertexify = { git = "https://github.com/mtesseracttech/vertexify" }
