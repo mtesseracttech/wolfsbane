@@ -6,6 +6,7 @@ extern crate vertexify;
 use std::time::{Duration, SystemTime};
 
 use glium::{glutin, Surface};
+use glutin::ElementState;
 use straal::{Mat4, Vec2, Vec3, Vec4};
 
 mod renderer;
@@ -23,7 +24,18 @@ fn run_glium() {
     let context = glutin::ContextBuilder::new().with_depth_buffer(24);
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
-    let mut quad_model = vertexify::ObjModel::load_from_file("res/meshes/quad.obj").unwrap();
+    let draw_parameters = glium::DrawParameters {
+        depth: glium::Depth {
+            test: glium::draw_parameters::DepthTest::IfLess,
+            write: true,
+
+            ..Default::default()
+        },
+        backface_culling: glium::draw_parameters::BackfaceCullingMode::CullCounterClockwise,
+        ..Default::default()
+    };
+
+    let mut quad_model = vertexify::ObjModel::load_from_file("res/meshes/teapot_smooth.obj").unwrap();
     let quad = quad_model.gen_glium_buffer(&display);
 
     let program = renderer::Shader::load(&display, renderer::Shader::GOURAUD).unwrap();
@@ -34,9 +46,15 @@ fn run_glium() {
     let mut delta_time = 0.0;
 
 
-    let mut model_matrix = get_model_matrix(&straal::Vec3::new(0.0, 0.0, 0.0), 0.1);
+    let mut model_matrix = get_model_matrix(&straal::Vec3::new(0.0, 0.0, 0.0), 0.3);
     let view_matrix = get_view_matrix(&Vec3::new(0.0, 0.0, 1.0), &Vec3::new(0.0, 0.0, -1.0), &Vec3::new(0.0, 1.0, 1.0));
+    let light_direction = Vec3::new(0.5, -0.5, 1.0).normalized();
+
     let mut frames = 0;
+
+    //Mouse related debugging things
+    let mut mouse_delta = Vec2::zero();
+    let mut mouse_down = false;
 
     let mut closed = false;
     while !closed {
@@ -55,24 +73,42 @@ fn run_glium() {
 
         let perspective_matrix = get_perspective_matrix(&Vec2::from(target.get_dimensions()));
 
-        model_matrix.rotate_around(Vec3::right(), delta_time * 2.3);
-        model_matrix.rotate_around(Vec3::up(), delta_time * 2.9);
-        model_matrix.rotate_around(-Vec3::forward(), delta_time * 3.1);
+        if mouse_down {
+            model_matrix *= Mat4::get_rotation_mat_euler_zxy(Vec3::new(-mouse_delta.y, mouse_delta.x, 0.0));
+        }
 
-        let uniforms = uniform! {model : model_matrix, view: view_matrix, perspective : perspective_matrix};
+        let uniforms = uniform! {model : model_matrix, view: view_matrix, perspective : perspective_matrix, light_dir : light_direction};
 
-        target.clear_color(0.01, 0.01, 0.01, 1.0);
-
-        quad.draw(&mut target, &program, &uniforms, &Default::default());
+        target.clear_color_and_depth((0.01, 0.01, 0.01, 1.0), 1.0);
+        quad.draw(&mut target, &program, &uniforms, &draw_parameters);
 
         target.finish().unwrap();
+
+        //mouse_down = false;
+        mouse_delta = Vec2::zero();
 
         //Processing the glutin events
         events_loop.poll_events(|ev| {
             match ev {
                 glutin::Event::WindowEvent { event, .. } => match event {
                     glutin::WindowEvent::CloseRequested => closed = true,
+                    glutin::WindowEvent::MouseInput { state, button, .. } => {
+                        if button == glutin::MouseButton::Left {
+                            mouse_down = match state {
+                                ElementState::Pressed => { true }
+                                ElementState::Released => { false }
+                            };
+                        }
+                    }
                     _ => (), //Don't do anything for other window events
+                },
+                glutin::Event::DeviceEvent { event, .. } => match event {
+                    glutin::DeviceEvent::MouseMotion { delta } => {
+                        mouse_delta = Vec2::from((delta.0 as f32, delta.1 as f32));
+                        //mouse_delta.x = delta.0 as f32;
+                        //mouse_delta.y = delta.1 as f32;
+                    }
+                    _ => ()
                 }
                 _ => (), //Don't do anything for other events
             }
