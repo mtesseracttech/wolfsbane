@@ -6,9 +6,15 @@ pub struct Camera {
     changed: bool,
 }
 
+pub enum CameraMode {
+    FirstPerson,
+    LookAt,
+    OrbCamera,
+}
+
 impl Camera {
     fn update_view_matrix(&mut self) {
-        self.view_matrix = self.transform.get_matrix().inverse();
+        self.view_matrix = self.transform.get_local_to_world_matrix().inverse();
         self.changed = false;
     }
 
@@ -20,7 +26,7 @@ impl Camera {
     }
 
     pub fn look_at(&mut self, dir: straal::Vec3) {
-        self.transform.set_forward(dir, straal::Vec3::forward());
+        self.transform.set_forward(dir, straal::Vec3::FORWARD);
         self.changed = true;
     }
 }

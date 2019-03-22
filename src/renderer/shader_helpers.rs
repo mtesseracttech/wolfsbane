@@ -31,6 +31,13 @@ impl Shader {
         geometry: None,
     };
 
+    #[allow(dead_code)]
+    pub const NORMALS: Self = Self {
+        vertex: include_str!("../../res/shaders/normals/normals.vert"),
+        fragment: include_str!("../../res/shaders/normals/normals.frag"),
+        geometry: None,
+    };
+
 
     #[allow(dead_code)]
     pub fn load(display: &glium::Display, shader_type: Self) -> Option<glium::Program> {

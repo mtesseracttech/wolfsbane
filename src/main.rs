@@ -6,14 +6,16 @@ extern crate vertexify;
 use std::time::{Duration, SystemTime};
 
 use glium::{glutin, Surface};
+use glutin::dpi::LogicalPosition;
 use glutin::ElementState;
-use straal::{Mat4, Vec2, Vec3, Vec4};
+use glutin::MouseScrollDelta;
+use glutin::VirtualKeyCode;
+use straal::{Mat3, Mat4, Quat, Vec2, Vec3, Vec4};
 
 mod renderer;
 
+#[allow(dead_code)]
 fn main() {
-    matrix_experiments();
-
     run_glium();
 }
 
@@ -21,7 +23,7 @@ fn main() {
 fn run_glium() {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new();
-    let context = glutin::ContextBuilder::new().with_depth_buffer(24);
+    let context = glutin::ContextBuilder::new().with_depth_buffer(24).with_multisampling(8);
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     let draw_parameters = glium::DrawParameters {
@@ -35,26 +37,43 @@ fn run_glium() {
         ..Default::default()
     };
 
-    let mut quad_model = vertexify::ObjModel::load_from_file("res/meshes/teapot_smooth.obj").unwrap();
+    let mut lucy_model = vertexify::ObjModel::load_from_file("res/meshes/lucy.obj").unwrap();
+    let lucy = lucy_model.gen_glium_buffer(&display);
+
+    let mut quad_model = vertexify::ObjModel::load_from_file("res/meshes/quad.obj").unwrap();
     let quad = quad_model.gen_glium_buffer(&display);
 
-    let program = renderer::Shader::load(&display, renderer::Shader::GOURAUD).unwrap();
+    let program = renderer::Shader::load(&display, renderer::Shader::NORMALS).unwrap();
 
     let timer = SystemTime::now();
     let mut time_current = 0.0;
     let mut time_previous = 0.0;
     let mut delta_time = 0.0;
 
+    let mut transform = renderer::Transform::default();
 
-    let mut model_matrix = get_model_matrix(&straal::Vec3::new(0.0, 0.0, 0.0), 0.3);
-    let view_matrix = get_view_matrix(&Vec3::new(0.0, 0.0, 1.0), &Vec3::new(0.0, 0.0, -1.0), &Vec3::new(0.0, 1.0, 1.0));
+    let view_matrix = get_view_matrix(&Vec3::new(0.0, 0.0, 1.0), &Vec3::new(0.0, 0.0, -1.0), &Vec3::new(0.0, 1.0, 0.0));
     let light_direction = Vec3::new(0.5, -0.5, 1.0).normalized();
 
     let mut frames = 0;
 
+    //let mut position_delta = Vec2::zero();
+    let mut up_pressed = false;
+    let mut down_pressed = false;
+    let mut left_pressed = false;
+    let mut right_pressed = false;
+
     //Mouse related debugging things
-    let mut mouse_delta = Vec2::zero();
+    let mut mouse_delta = Vec2::ZERO;
     let mut mouse_down = false;
+    let mut mouse_zoom = 2.0;
+    let mut mouse_zoom_changed = false;
+
+    transform.set_local_scale(Vec3::all(mouse_zoom));
+    transform.rotate_angle_axis(Vec3::UP, std::f32::consts::FRAC_PI_4);
+
+    let mut rotation_matrix = Mat3::IDENTITY;
+    //let mut rotation_quat = Quat::IDENTITY;
 
     let mut closed = false;
     while !closed {
@@ -63,30 +82,68 @@ fn run_glium() {
         time_current = get_time(&timer);
         delta_time = time_current - time_previous;
 
-        if frames == 100 {
-            frames = 0;
-            let fps = 1.0 / delta_time;
-            println!("fps: {}", fps);
+        let dx = match (left_pressed, right_pressed) {
+            (true, false) => 1.0,
+            (false, true) => -1.0,
+            _ => 0.0
+        };
+
+        let dy = match (up_pressed, down_pressed) {
+            (true, false) => 1.0,
+            (false, true) => -1.0,
+            _ => 0.0
+        };
+        let position_delta = Vec2::new(dx, dy);
+
+        if position_delta != Vec2::ZERO {
+            transform.translate(Vec3::new(position_delta.x / 100.0, position_delta.y / 100.0, 0.0));
         }
 
         let mut target = display.draw();
 
         let perspective_matrix = get_perspective_matrix(&Vec2::from(target.get_dimensions()));
 
-        if mouse_down {
-            model_matrix *= Mat4::get_rotation_mat_euler_zxy(Vec3::new(-mouse_delta.y, mouse_delta.x, 0.0));
+        if mouse_zoom_changed {
+            transform.set_local_scale(Vec3::all(mouse_zoom))
         }
 
-        let uniforms = uniform! {model : model_matrix, view: view_matrix, perspective : perspective_matrix, light_dir : light_direction};
+//        let mut rot = transform.get_local_rotation();
+//        rot *= Quat::from_angle_axis(Vec3::UP, delta_time * 40.0);
+//        let x_axis = transform.get_right();
+//        rot *= Quat::from_angle_axis(x_axis, delta_time * 40.0);
+//        transform.set_local_rotation(rot);
+
+
+        /*if mouse_down {
+            rotation_matrix.rotate_around(Vec3::UP, mouse_delta.x / 100.0);
+            let x_axis = rotation_matrix.r0.normalized();
+            //rotation_matrix.rotate_around(Vec3::RIGHT, -mouse_delta.y / 100.0);
+            rotation_matrix.rotate_around(x_axis, -mouse_delta.y / 100.0);
+            transform.set_local_rotation(Quat::from(rotation_matrix));
+        }*/
+
+        /*let scale_mat = Mat4::get_scale_mat(Vec3::ONE);
+
+        let rot_mat_from_quat = Mat4::from(Mat3 {
+            r0: (transform.get_local_rotation() * Vec3::RIGHT).normalized(),
+            r1: (transform.get_local_rotation() * Vec3::UP).normalized(),
+            r2: (transform.get_local_rotation() * Vec3::FORWARD).normalized(),
+        });
+        let position_mat = Mat4::get_translation_mat(Vec3::ZERO);
+        let model_matrix_2 = scale_mat * rot_mat_from_quat * position_mat;
+        */
+        let uniforms = uniform! {model : transform.get_local_to_world_matrix(), view: view_matrix, perspective : perspective_matrix, light_dir : light_direction};
+        //let uniforms_2 = uniform!(model : model_matrix_2, view: view_matrix, perspective : perspective_matrix, light_dir : light_direction);
 
         target.clear_color_and_depth((0.01, 0.01, 0.01, 1.0), 1.0);
-        quad.draw(&mut target, &program, &uniforms, &draw_parameters);
+
+        lucy.draw(&mut target, &program, &uniforms, &draw_parameters);
+        //lucy.draw(&mut target, &program, &uniforms_2, &draw_parameters);
 
         target.finish().unwrap();
 
-        //mouse_down = false;
-        mouse_delta = Vec2::zero();
-
+        mouse_delta = Vec2::ZERO;
+        mouse_zoom_changed = false;
         //Processing the glutin events
         events_loop.poll_events(|ev| {
             match ev {
@@ -100,13 +157,37 @@ fn run_glium() {
                             };
                         }
                     }
+                    glutin::WindowEvent::MouseWheel { delta, .. } => {
+                        match delta {
+                            MouseScrollDelta::LineDelta(x, y) => {
+                                mouse_zoom += y / 10.0;
+                                mouse_zoom_changed = true;
+                            }
+                            MouseScrollDelta::PixelDelta(pos) => {
+                                mouse_zoom += pos.y as f32;
+                                mouse_zoom_changed = true;
+                            }
+                        }
+                    }
+                    glutin::WindowEvent::KeyboardInput { input, .. } => {
+                        match input.virtual_keycode {
+                            Some(keycode) => {
+                                match keycode {
+                                    VirtualKeyCode::W => up_pressed = input.state == ElementState::Pressed,
+                                    VirtualKeyCode::S => down_pressed = input.state == ElementState::Pressed,
+                                    VirtualKeyCode::A => left_pressed = input.state == ElementState::Pressed,
+                                    VirtualKeyCode::D => right_pressed = input.state == ElementState::Pressed,
+                                    _ => {}
+                                }
+                            }
+                            None => {}
+                        }
+                    }
                     _ => (), //Don't do anything for other window events
                 },
                 glutin::Event::DeviceEvent { event, .. } => match event {
                     glutin::DeviceEvent::MouseMotion { delta } => {
                         mouse_delta = Vec2::from((delta.0 as f32, delta.1 as f32));
-                        //mouse_delta.x = delta.0 as f32;
-                        //mouse_delta.y = delta.1 as f32;
                     }
                     _ => ()
                 }
@@ -114,18 +195,6 @@ fn run_glium() {
             }
         });
     }
-}
-
-
-fn matrix_experiments() {
-    let mut trans = renderer::Transform::default();
-    trans.set_position(straal::Vec3::new(10.0, 10.0, 10.0));
-    trans.set_scale(straal::Vec3::new(2.0, 3.0, 4.0));
-    trans.set_forward(straal::Vec3::new(1.0, 1.0, 1.0).normalized(), straal::Vec3::up());
-    let matrix = trans.get_matrix();
-
-    println!("{}", trans);
-    println!("{}", matrix);
 }
 
 pub fn get_perspective_matrix(target_dims: &Vec2) -> Mat4 {
@@ -144,9 +213,9 @@ pub fn get_perspective_matrix(target_dims: &Vec2) -> Mat4 {
 
 pub fn get_view_matrix(pos: &Vec3, dir: &Vec3, up: &Vec3) -> Mat4 {
     let fwd = dir.normalized();
-    let rht = Vec3::cross(up, &fwd).normalized();
-    let up = Vec3::cross(&fwd, &rht);
-    let pos = Vec3::new(-Vec3::dot(pos, &rht), -Vec3::dot(pos, &up), -Vec3::dot(pos, &fwd));
+    let rht = Vec3::cross(*up, fwd).normalized();
+    let up = Vec3::cross(fwd, rht);
+    let pos = Vec3::new(-Vec3::dot(*pos, rht), -Vec3::dot(*pos, up), -Vec3::dot(*pos, fwd));
 
     Mat4::new_from_vec4s(Vec4::from((rht, pos.x)),
                          Vec4::from((up, pos.y)),

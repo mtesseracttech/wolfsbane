@@ -1,7 +1,7 @@
 [package]
 name = "wolfsbane"
 version = "0.1.0"
-authors = ["MT <mtesseracttech@gmail.com>"]
+authors = ["MT"]
 edition = "2018"
 
 [dependencies]
