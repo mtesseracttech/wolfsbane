@@ -1,7 +1,5 @@
 use std::fmt;
 
-use straal::{Mat3, Mat4, Quat, Real, Vec3, Vec4};
-
 use super::*;
 
 pub enum Space {
@@ -11,10 +9,10 @@ pub enum Space {
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Transform {
-    position: Vec3,
-    rotation: Quat,
-    scale: Vec3,
-    transform: Mat4,
+    position: Vec3n,
+    rotation: Quatn,
+    scale: Vec3n,
+    transform: Mat4n,
     changed: bool,
     parent: Option<Box<Transform>>,
     children: Vec<Transform>,
@@ -24,10 +22,10 @@ pub struct Transform {
 impl Transform {
     pub fn default() -> Transform {
         Transform {
-            position: Vec3::ZERO,
-            rotation: Quat::IDENTITY,
-            scale: Vec3::ONE,
-            transform: Mat4::IDENTITY,
+            position: Vec3n::zero(),
+            rotation: Quatn::identity(),
+            scale: Vec3n::one(),
+            transform: Mat4n::identity(),
             changed: true,
             parent: None,
             children: Vec::new(),
@@ -54,118 +52,150 @@ impl Transform {
         self.children.get_mut(index)
     }
 
-
     fn is_child_of(&self, parent: Transform) -> bool {
         unimplemented!();
     }
 
     fn update_matrix(&mut self) {
-        let s = Mat4::get_scale_mat(self.scale);
-        let r = Mat4::from(self.rotation);
-        let t = Mat4::get_translation_mat(self.position);
+        let s = Mat4n::get_uniform_scale_mat(self.scale);
+        let r = Mat4n::from(self.rotation);
+        let t = Mat4n::get_translation_mat(self.position);
         self.transform = s * r * t;
         self.changed = false;
     }
 
-    pub fn get_local_to_world_matrix(&mut self) -> Mat4 {
+    pub fn get_local_to_world_matrix(&mut self) -> Mat4n {
         if self.changed {
             self.update_matrix();
         }
         self.transform
     }
 
-    pub fn get_world_to_local_matrix(&mut self) -> Mat4 {
+    pub fn get_world_to_local_matrix(&mut self) -> Mat4n {
         self.get_local_to_world_matrix().inverse()
     }
 
 
-    pub fn get_local_position(&self) -> Vec3 {
+    pub fn get_local_position(&self) -> Vec3n {
         self.position
     }
 
-    pub fn set_local_position(&mut self, position: Vec3) {
+    pub fn set_local_position(&mut self, position: Vec3n) {
         self.position = position;
         self.changed = true;
     }
 
-    pub fn get_world_position() -> Vec3 {
+    pub fn get_world_position() -> Vec3n {
         unimplemented!()
     }
 
 
-    pub fn get_local_rotation(&self) -> Quat {
+    pub fn get_local_rotation(&self) -> Quatn {
         self.rotation
     }
 
-    pub fn set_local_rotation(&mut self, rotation: Quat) {
+    pub fn set_local_rotation(&mut self, rotation: Quatn) {
         self.rotation = rotation;
         self.changed = true;
     }
 
-    pub fn get_world_rotation() -> Quat {
+    pub fn get_world_rotation() -> Quatn {
         unimplemented!()
     }
 
 
-    pub fn get_local_scale(&self) -> Vec3 {
+    pub fn get_local_scale(&self) -> Vec3n {
         self.scale
     }
 
-    pub fn set_local_scale(&mut self, scale: Vec3) {
+    pub fn set_local_scale(&mut self, scale: Vec3n) {
         self.scale = scale;
         self.changed = true;
     }
 
-    pub fn get_world_scale() -> Vec3 {
+    pub fn get_world_scale() -> Vec3n {
         unimplemented!()
     }
 
-    pub fn translate(&mut self, delta_pos: Vec3) {
+    pub fn translate(&mut self, delta_pos: Vec3n) {
         self.position += delta_pos;
         self.changed = true;
     }
 
-    pub fn rotate_euler(&mut self, pitch: Real, heading: Real, bank: Real) {
-        self.rotation *= Quat::from_euler_obj_upr_deg(pitch, heading, bank);
+    pub fn rotate_euler(&mut self, pitch: f32, heading: f32, bank: f32) {
+        self.rotation *= Quatn::get_quat_flex_euler_deg(pitch, heading, bank, straal::RotationOrder::HBP);
         self.changed = true;
     }
 
-    pub fn rotate_angle_axis(&mut self, n: Vec3, theta: Real) {
-        self.rotation *= Quat::from_angle_axis(n, theta);
+    pub fn rotate_angle_axis(&mut self, theta: f32, n: Vec3n) {
+        self.rotation *= Quatn::get_quat_from_angle_axis(theta, n);
         self.changed = true;
     }
 
-    pub fn get_right(&mut self) -> Vec3 {
-        (self.get_local_rotation() * Vec3::RIGHT).normalized()
+    pub fn get_right(&mut self) -> Vec3n {
+        (self.get_local_rotation() * Vec3n::right()).normalized()
     }
 
-    pub fn get_left(&mut self) -> Vec3 {
-        (self.get_local_rotation() * -Vec3::RIGHT).normalized()
+    pub fn get_left(&mut self) -> Vec3n {
+        (self.get_local_rotation() * -Vec3n::right()).normalized()
     }
 
-    pub fn get_up(&mut self) -> Vec3 {
-        (self.get_local_rotation() * Vec3::UP).normalized()
+    pub fn get_up(&mut self) -> Vec3n {
+        (self.get_local_rotation() * Vec3n::up()).normalized()
     }
 
-    pub fn get_down(&mut self) -> Vec3 {
-        (self.get_local_rotation() * -Vec3::UP).normalized()
+    pub fn get_down(&mut self) -> Vec3n {
+        (self.get_local_rotation() * -Vec3n::up()).normalized()
     }
 
-    pub fn get_forward(&mut self) -> Vec3 {
-        (self.get_local_rotation() * Vec3::FORWARD).normalized()
+    pub fn get_forward(&mut self) -> Vec3n {
+        (self.get_local_rotation() * Vec3n::forward()).normalized()
     }
 
-    pub fn get_backward(&mut self) -> Vec3 {
-        (self.get_local_rotation() * -Vec3::FORWARD).normalized()
+    pub fn get_backward(&mut self) -> Vec3n {
+        (self.get_local_rotation() * -Vec3n::forward()).normalized()
     }
 
 
-    pub fn set_forward(&mut self, fwd: Vec3, up: Vec3) {
+    pub fn set_forward(&mut self, fwd: Vec3n, up: Vec3n) {
         let fwd = fwd.normalized();
-        let rht = Vec3::cross(up, fwd).normalized();
-        let up = Vec3::cross(fwd, rht).normalized();
-        self.rotation = Quat::from(Mat3::new_from_vec3s(rht, up, fwd));
+        let rht = up.cross(fwd).normalized();
+        let up = fwd.cross(rht).normalized();
+        self.rotation = Quatn::from(Mat3n::new_from_vec3s(rht, up, fwd));
         self.changed = true;
+    }
+
+    pub fn rotate_around(&mut self, point: Vec3n, axis: Vec3n, theta: f32) {
+//        let mut world_pos = self.get_world_position();
+//        let rotation = Quat::from_angle_axis(axis, theta);
+//        let diff = rotation * (world_pos - point);
+//        let world_pos = point + diff;
+//        self.position = world_pos;
+//        RotateAroundInternal(axis, angle * Mathf.Deg2Rad);
+    }
+
+    fn rotate_around_in_world(&mut self, v_world: Vec3n, theta: f32) {}
+
+    fn transform_direction(dir: Vec3n) -> Vec3n
+    {
+        unimplemented!()
+        //let local_axis =
+//        Vector3 localAxis = InverseTransformDirection(worldAxis);
+//        if (localAxis.sqrMagnitude > Vector3.kEpsilon)
+//        {
+//            localAxis.Normalize();
+//            Quaternion q = Quaternion.AxisAngleToQuaternionSafe(localAxis, rad);
+//            m_LocalRotation = Quaternion.NormalizeSafe(m_LocalRotation * q);
+//            SetDirty();
+//        }
+        //return Quaternion.RotateVectorByQuat (GetRotation (), inDirection);
+    }
+
+    fn inverse_transform_direction(dir: Vec3n) -> Vec3n
+    {
+        unimplemented!()
+
+        //return Quaternion.RotateVectorByQuat(Quaternion.Inverse(GetRotation()), inDirection);
     }
 }
 
