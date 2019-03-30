@@ -7,6 +7,9 @@
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="RustProjectSettings">
+    <option name="expandMacros" value="false" />
+    <option name="externalLinter" value="Clippy" />
+    <option name="runRustfmtOnSave" value="true" />
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
   </component>
 </project>

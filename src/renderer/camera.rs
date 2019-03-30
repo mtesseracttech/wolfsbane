@@ -1,3 +1,5 @@
+use straal::{FloatType, Mat4, Vec3};
+
 use super::*;
 
 pub enum CameraMode {
@@ -6,18 +8,18 @@ pub enum CameraMode {
     OrbCamera,
 }
 
-pub struct Camera {
-    transform: Transform,
-    view_matrix: Mat4n,
+pub struct Camera<S> {
+    transform: Transform<S>,
+    view_matrix: Mat4<S>,
     changed: bool,
     mode: CameraMode,
 }
 
-impl Camera {
-    fn default() -> Camera {
+impl<S> Camera<S> where S: FloatType<S> {
+    fn default() -> Camera<S> {
         Camera {
             transform: Transform::default(),
-            view_matrix: Mat4n::identity(),
+            view_matrix: Mat4::identity(),
             changed: true,
             mode: CameraMode::FirstPerson,
         }
@@ -28,19 +30,15 @@ impl Camera {
         self.changed = false;
     }
 
-    pub fn get_view_matrix(&mut self) -> Mat4n {
+    pub fn get_view_matrix(&mut self) -> Mat4<S> {
         if self.changed {
             self.update_view_matrix();
         }
         self.view_matrix
     }
 
-    pub fn look_at(&mut self, dir: Vec3n) {
-        self.transform.set_forward(dir, Vec3n::forward());
+    pub fn look_at(&mut self, dir: Vec3<S>) {
+        self.transform.set_forward(dir, Vec3::forward());
         self.changed = true;
-    }
-
-    pub fn get_transform(&mut self) -> &mut Transform {
-        unimplemented!()
     }
 }

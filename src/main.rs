@@ -19,11 +19,12 @@ fn main() {
     run_glium();
 }
 
-
 fn run_glium() {
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new();
-    let context = glutin::ContextBuilder::new().with_depth_buffer(24).with_multisampling(8);
+    let context = glutin::ContextBuilder::new()
+        .with_depth_buffer(24)
+        .with_multisampling(8);
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     let draw_parameters = glium::DrawParameters {
@@ -52,7 +53,11 @@ fn run_glium() {
 
     let mut transform = renderer::Transform::default();
 
-    let view_matrix = get_view_matrix(&Vec3n::new(0.0, 0.0, 1.0), &Vec3n::new(0.0, 0.0, -1.0), &Vec3n::new(0.0, 1.0, 0.0));
+    let view_matrix = get_view_matrix(
+        &Vec3n::new(0.0, 0.0, 1.0),
+        &Vec3n::new(0.0, 0.0, -1.0),
+        &Vec3n::new(0.0, 1.0, 0.0),
+    );
     let light_direction = Vec3n::new(0.5, -0.5, 1.0).normalized();
 
     let mut frames = 0;
@@ -85,18 +90,22 @@ fn run_glium() {
         let dx = match (left_pressed, right_pressed) {
             (true, false) => 1.0,
             (false, true) => -1.0,
-            _ => 0.0
+            _ => 0.0,
         };
 
         let dy = match (up_pressed, down_pressed) {
             (true, false) => 1.0,
             (false, true) => -1.0,
-            _ => 0.0
+            _ => 0.0,
         };
         let position_delta = Vec2n::new(dx, dy);
 
         if position_delta != Vec2n::zero() {
-            transform.translate(Vec3n::new(position_delta.x / 100.0, position_delta.y / 100.0, 0.0));
+            transform.translate(Vec3n::new(
+                position_delta.x / 100.0,
+                position_delta.y / 100.0,
+                0.0,
+            ));
         }
 
         let mut target = display.draw();
@@ -131,34 +140,38 @@ fn run_glium() {
                     glutin::WindowEvent::MouseInput { state, button, .. } => {
                         if button == glutin::MouseButton::Left {
                             mouse_down = match state {
-                                ElementState::Pressed => { true }
-                                ElementState::Released => { false }
+                                ElementState::Pressed => true,
+                                ElementState::Released => false,
                             };
                         }
                     }
-                    glutin::WindowEvent::MouseWheel { delta, .. } => {
-                        match delta {
-                            MouseScrollDelta::LineDelta(x, y) => {
-                                mouse_zoom += y / 10.0;
-                                mouse_zoom_changed = true;
-                            }
-                            MouseScrollDelta::PixelDelta(pos) => {
-                                mouse_zoom += pos.y as f32;
-                                mouse_zoom_changed = true;
-                            }
+                    glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
+                        MouseScrollDelta::LineDelta(x, y) => {
+                            mouse_zoom += y / 10.0;
+                            mouse_zoom_changed = true;
                         }
-                    }
+                        MouseScrollDelta::PixelDelta(pos) => {
+                            mouse_zoom += pos.y as f32;
+                            mouse_zoom_changed = true;
+                        }
+                    },
                     glutin::WindowEvent::KeyboardInput { input, .. } => {
                         match input.virtual_keycode {
-                            Some(keycode) => {
-                                match keycode {
-                                    VirtualKeyCode::W => up_pressed = input.state == ElementState::Pressed,
-                                    VirtualKeyCode::S => down_pressed = input.state == ElementState::Pressed,
-                                    VirtualKeyCode::A => left_pressed = input.state == ElementState::Pressed,
-                                    VirtualKeyCode::D => right_pressed = input.state == ElementState::Pressed,
-                                    _ => {}
+                            Some(keycode) => match keycode {
+                                VirtualKeyCode::W => {
+                                    up_pressed = input.state == ElementState::Pressed
                                 }
-                            }
+                                VirtualKeyCode::S => {
+                                    down_pressed = input.state == ElementState::Pressed
+                                }
+                                VirtualKeyCode::A => {
+                                    left_pressed = input.state == ElementState::Pressed
+                                }
+                                VirtualKeyCode::D => {
+                                    right_pressed = input.state == ElementState::Pressed
+                                }
+                                _ => {}
+                            },
                             None => {}
                         }
                     }
@@ -168,8 +181,8 @@ fn run_glium() {
                     glutin::DeviceEvent::MouseMotion { delta } => {
                         mouse_delta = Vec2n::from((delta.0 as f32, delta.1 as f32));
                     }
-                    _ => ()
-                }
+                    _ => (),
+                },
                 _ => (), //Don't do anything for other events
             }
         });
@@ -183,39 +196,56 @@ pub fn get_perspective_matrix(target_dims: &Vec2n) -> Mat4n {
     let z_near = 0.1;
     let f = 1.0 / (fov / 2.0).tan();
 
-    Mat4n::new(f * aspect_ratio, 0.0, 0.0, 0.0,
-               0.0, f, 0.0, 0.0,
-               0.0, 0.0, (z_far + z_near) / (z_far - z_near), -(2.0 * z_far * z_near) / (z_far - z_near),
-               0.0, 0.0, 1.0, 0.0)
+    Mat4n::new(
+        f * aspect_ratio,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        f,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        (z_far + z_near) / (z_far - z_near),
+        -(2.0 * z_far * z_near) / (z_far - z_near),
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+    )
 }
-
 
 pub fn get_view_matrix(pos: &Vec3n, dir: &Vec3n, up: &Vec3n) -> Mat4n {
     let fwd = dir.normalized();
-    let rht = up.cross(fwd).normalized();//Vec3::cross(*up, fwd).normalized();
-    let up = fwd.cross(rht);//Vec3::cross(fwd, rht);
+    let rht = up.cross(fwd).normalized();
+    let up = fwd.cross(rht);
     let pos = Vec3n {
         x: -pos.dot(rht),
         y: -pos.dot(up),
         z: -pos.dot(fwd),
-    };//Vec3::new(-Vec3::dot(*pos, rht), -Vec3::dot(*pos, up), -Vec3::dot(*pos, fwd));
+    };
 
-    Mat4n::new_from_vec4s(Vec4n::from((rht, pos.x)),
-                          Vec4n::from((up, pos.y)),
-                          Vec4n::from((fwd, pos.z)),
-                          Vec4n::new(0.0, 0.0, 0.0, 1.0))
+    Mat4n::new_from_vec4s(
+        Vec4n::from((rht, pos.x)),
+        Vec4n::from((up, pos.y)),
+        Vec4n::from((fwd, pos.z)),
+        Vec4n::new(0.0, 0.0, 0.0, 1.0),
+    )
 }
 
 pub fn get_model_matrix(pos: &Vec3n, scale: f32) -> Mat4n {
-    Mat4n::new(scale, 0.0, 0.0, pos.x,
-               0.0, scale, 0.0, pos.y,
-               0.0, 0.0, scale, pos.z,
-               0.0, 0.0, 0.0, 1.0)
+    Mat4n::new(
+        scale, 0.0, 0.0, pos.x, 0.0, scale, 0.0, pos.y, 0.0, 0.0, scale, pos.z, 0.0, 0.0, 0.0, 1.0,
+    )
 }
 
 pub fn get_time(timer: &SystemTime) -> f32 {
     match timer.elapsed() {
-        Ok(elapsed) => ((elapsed.as_secs() * 1_000_000_000 + elapsed.subsec_nanos() as u64) as f64 / 1_000_000_000.0) as f32,
+        Ok(elapsed) => {
+            ((elapsed.as_secs() * 1_000_000_000 + elapsed.subsec_nanos() as u64) as f64
+                / 1_000_000_000.0) as f32
+        }
         Err(e) => {
             println!("Error: {:?}", e);
             0.0

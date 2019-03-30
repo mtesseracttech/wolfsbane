@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 glium = "*"
-straal = { git = "https://github.com/mtesseracttech/straal" }
-vertexify = { git = "https://github.com/mtesseracttech/vertexify" }
+straal = { git = "https://github.com/mtesseracttech/straal", branch = "develop" }
+vertexify = { git = "https://github.com/mtesseracttech/vertexify"}
