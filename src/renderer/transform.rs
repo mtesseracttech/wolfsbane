@@ -1,6 +1,6 @@
 use std::fmt;
 
-use straal::{FloatType, Mat2, Mat3, Mat4, Quat, Vec2, Vec3, Vec4};
+use straal::{FloatType, Mat2, Mat3, Mat4, Quat, RotationOrder, Vec2, Vec3, Vec4};
 
 use crate::get_model_matrix;
 
@@ -24,7 +24,8 @@ pub enum Space {
 //#[derive(Clone, Debug)]
 pub struct Transform<S> {
     position: Vec3<S>,
-    rotation: Quat<S>,
+    world_rotation: Quat<S>,
+    local_rotation: Quat<S>,
     scale: Vec3<S>,
     transform: Mat4<S>,
     changed: bool,
@@ -58,13 +59,14 @@ where
     fn get_parent(&mut self) -> Option<RelatedTransform<S>> {
         self.parent.clone()
     }
-
-    fn detach_children(&mut self) {
-        for i in 0..self.child_count() {
-            self.children[i].set() = None;
+    /*
+        fn detach_children(&mut self) {
+            //unparent children and remove them from the vector
+            for i in 0..self.child_count() {
+                self.children[i].set();
+            }
         }
-    }
-
+    */
     fn get_child_by_index(&mut self, index: usize) -> Option<&mut Transform<S>> {
         unimplemented!();
     }
@@ -144,17 +146,6 @@ where
         self.changed = true;
     }
 
-    pub fn rotate_euler(&mut self, pitch: S, heading: S, bank: S) {
-        self.rotation *=
-            Quat::get_quat_flex_euler_deg(pitch, heading, bank, straal::RotationOrder::HBP);
-        self.changed = true;
-    }
-
-    pub fn rotate_angle_axis(&mut self, theta: S, n: Vec3<S>) {
-        self.rotation *= Quat::get_quat_from_angle_axis(theta, n);
-        self.changed = true;
-    }
-
     pub fn get_right(&mut self) -> Vec3<S> {
         (self.get_local_rotation() * Vec3::right()).normalized()
     }
@@ -187,16 +178,31 @@ where
         self.changed = true;
     }
 
-    pub fn rotate_around(&mut self, point: Vec3<S>, axis: Vec3<S>, theta: S) {
-        //        let mut world_pos = self.get_world_position();
-        //        let rotation = Quat::from_angle_axis(axis, theta);
-        //        let diff = rotation * (world_pos - point);
-        //        let world_pos = point + diff;
-        //        self.position = world_pos;
-        //        RotateAroundInternal(axis, angle * Mathf.Deg2Rad);
+    pub fn rotate_angle_axis(&mut self, axis: Vec3<S>, angle: S, relative_to: Space) {
+        match relative_to {
+            Space::Local => {}
+            Space::World => {}
+        }
     }
 
-    fn rotate_around_in_world(&mut self, v_world: Vec3<S>, theta: S) {}
+    pub fn rotate_euler_angles(&mut self, pitch: S, heading: S, bank: S, relative_to: Space) {}
+
+    fn rotate_around(&mut self, point: Vec3<S>, axis: Vec3<S>, theta: S) {
+        let mut world_pos = self.get_world_position();
+        let rotation = Quat::from_angle_axis(axis, theta);
+    }
+
+    fn rotate_around_internal(&mut self, world_axis: Vec3<S>, rad: S) {
+        let mut local_axis = InverseTransformDirection(worldAxis);
+        if local_axis.sqrMagnitude > S::DEF_EPSILON {
+            local_axis.normalize();
+            let q = Quat::get_quat_from_angle_axis_safe(local_axis, rad);
+            self.local_rotation = Quaternion.NormalizeSafe(m_LocalRotation * q);
+            self.changed = true;
+        }
+    }
+
+    //fn rotate_around_in_world(&mut self, v_world: Vec3<S>, theta: S) {}
 
     fn transform_direction(dir: Vec3<S>) -> Vec3<S> {
         unimplemented!()
