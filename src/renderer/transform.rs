@@ -16,12 +16,7 @@ pub enum Space {
     World,
 }
 
-/*struct RelatedNode {
-    name: String,
-    hash: u64,
-}*/
-
-//#[derive(Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Transform<S> {
     position: Vec3<S>,
     world_rotation: Quat<S>,

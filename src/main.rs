@@ -81,7 +81,6 @@ fn run_glium() {
     let mut rotation_matrix = Mat3n::identity();
 
     let mut world = SceneContainer::new();
-    let mut world_access = (*world).get_mut();
 
     let mut closed = false;
     while !closed {
