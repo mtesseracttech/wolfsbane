@@ -78,7 +78,6 @@ fn run_glium() {
     transform.rotate_angle_axis(std::f32::consts::FRAC_PI_4, Vec3n::up());
 
     let mut rotation_matrix = Mat3n::identity();
-    //let mut rotation_quat = Quat::IDENTITY;
 
     let mut closed = false;
     while !closed {
@@ -98,12 +97,15 @@ fn run_glium() {
             (false, true) => -1.0,
             _ => 0.0,
         };
+
         let position_delta = Vec2n::new(dx, dy);
+
+        let delta_factor = 200.0;
 
         if position_delta != Vec2n::zero() {
             transform.translate(Vec3n::new(
-                position_delta.x / 100.0,
-                position_delta.y / 100.0,
+                position_delta.x / delta_factor,
+                position_delta.y / delta_factor,
                 0.0,
             ));
         }
@@ -127,6 +129,7 @@ fn run_glium() {
 
         lucy.draw(&mut target, &program, &uniforms, &draw_parameters);
         //lucy.draw(&mut target, &program, &uniforms_2, &draw_parameters);
+        //quad.draw(&mut target, &program, &uniforms, &draw_parameters);
 
         target.finish().unwrap();
 
