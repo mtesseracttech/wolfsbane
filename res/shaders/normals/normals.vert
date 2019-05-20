@@ -11,6 +11,6 @@ uniform mat4 model;
 
 void main() {
     mat4 modelview = view * model;
-    v_normal =normal;
+    v_normal = normal;
     gl_Position = perspective * modelview * vec4(position, 1.0);
 }

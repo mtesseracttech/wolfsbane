@@ -1,3 +1,4 @@
+use super::scene_node::SceneNode;
 use core::fmt;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};

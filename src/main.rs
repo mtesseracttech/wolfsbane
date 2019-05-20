@@ -13,6 +13,7 @@ use glutin::VirtualKeyCode;
 use straal::{Mat3n, Mat4n, Quatn, Vec2n, Vec3n, Vec4n};
 
 mod renderer;
+use renderer::SceneContainer;
 
 #[allow(dead_code)]
 fn main() {
@@ -78,6 +79,8 @@ fn run_glium() {
     transform.rotate_angle_axis(std::f32::consts::FRAC_PI_4, Vec3n::up());
 
     let mut rotation_matrix = Mat3n::identity();
+
+    let mut world = SceneContainer::new();
 
     let mut closed = false;
     while !closed {

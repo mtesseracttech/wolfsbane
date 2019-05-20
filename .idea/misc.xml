@@ -3,13 +3,17 @@
   <component name="CargoProjects">
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="uLJDuLIQ" />
+  </component>
   <component name="ProjectRootManager">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="RustProjectSettings">
-    <option name="expandMacros" value="false" />
     <option name="externalLinter" value="Clippy" />
+    <option name="macroExpansionEngine" value="DISABLED" />
     <option name="runRustfmtOnSave" value="true" />
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+    <option name="version" value="2" />
   </component>
 </project>

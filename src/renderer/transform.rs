@@ -59,14 +59,11 @@ where
     fn get_parent(&mut self) -> Option<RelatedTransform<S>> {
         self.parent.clone()
     }
-    /*
-        fn detach_children(&mut self) {
-            //unparent children and remove them from the vector
-            for i in 0..self.child_count() {
-                self.children[i].set();
-            }
-        }
-    */
+
+    fn detach_children(&mut self) {
+        unimplemented!();
+    }
+
     fn get_child_by_index(&mut self, index: usize) -> Option<&mut Transform<S>> {
         unimplemented!();
     }
@@ -178,14 +175,19 @@ where
         self.changed = true;
     }
 
-    pub fn rotate_angle_axis(&mut self, axis: Vec3<S>, angle: S, relative_to: Space) {
-        match relative_to {
-            Space::Local => {}
-            Space::World => {}
-        }
+    pub fn rotate_around(&mut self, point: Vec3<S>, axis: Vec3<S>, theta: S) {
+        unimplemented!();
+        //        let mut world_pos = self.get_world_position();
+        //        let rotation = Quat::from_angle_axis(axis, theta);
+        //        let diff = rotation * (world_pos - point);
+        //        let world_pos = point + diff;
+        //        self.position = world_pos;
+        //        RotateAroundInternal(axis, angle * Mathf.Deg2Rad);
     }
 
-    pub fn rotate_euler_angles(&mut self, pitch: S, heading: S, bank: S, relative_to: Space) {}
+    fn rotate_around_in_world(&mut self, v_world: Vec3<S>, theta: S) {
+        unimplemented!();
+    }
 
     fn rotate_around(&mut self, point: Vec3<S>, axis: Vec3<S>, theta: S) {
         let mut world_pos = self.get_world_position();
@@ -220,7 +222,6 @@ where
 
     fn inverse_transform_direction(dir: Vec3<S>) -> Vec3<S> {
         unimplemented!()
-
         //return Quaternion.RotateVectorByQuat(Quaternion.Inverse(GetRotation()), inDirection);
     }
 
