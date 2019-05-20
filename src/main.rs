@@ -76,11 +76,12 @@ fn run_glium() {
     let mut mouse_zoom_changed = false;
 
     transform.set_local_scale(Vec3n::all(mouse_zoom));
-    transform.rotate_angle_axis(std::f32::consts::FRAC_PI_4, Vec3n::up());
+    //transform.rotate_angle_axis(std::f32::consts::FRAC_PI_4, Vec3n::up());
 
     let mut rotation_matrix = Mat3n::identity();
 
     let mut world = SceneContainer::new();
+    let mut world_access = (*world).get_mut();
 
     let mut closed = false;
     while !closed {

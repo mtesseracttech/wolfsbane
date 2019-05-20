@@ -1,4 +1,6 @@
 use super::scene_container::SceneContainer;
+use crate::renderer::Transform;
+use core::borrow::BorrowMut;
 use core::fmt;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -6,6 +8,7 @@ use std::rc::Rc;
 use std::string::ToString;
 
 pub struct SceneNode {
+    transform: Transform<f32>,
     container: Rc<RefCell<SceneContainer>>,
     parent: Option<u64>,
     children: Vec<u64>,
@@ -21,6 +24,7 @@ impl SceneNode {
     ) -> u64 {
         let mut container_deref = (*container).borrow_mut();
         let new_node_id = container_deref.add_node(Rc::new(RefCell::new(SceneNode {
+            transform: Transform::default(),
             container: container.clone(),
             parent,
             children: Vec::new(),
@@ -28,7 +32,7 @@ impl SceneNode {
             name: if name.is_some() {
                 name.unwrap().to_string()
             } else {
-                "n/a".to_string()
+                "unnamed".to_string()
             },
         })));
 
@@ -36,14 +40,18 @@ impl SceneNode {
             let parent_id = parent.unwrap();
             let parent_node = container_deref.get_node(parent_id).unwrap();
             let mut parent_node = (*parent_node).borrow_mut();
-            parent_node.add_child(new_node_id);
+            parent_node.add_child_id(new_node_id);
         }
 
         new_node_id
     }
 
-    pub(in crate::scene_container) fn set_id(&mut self, id: u64) {
+    pub(in crate::renderer::scene_map) fn set_id(&mut self, id: u64) {
         self.id = id;
+    }
+
+    pub fn get_transform(&mut self) -> &mut Transform<f32> {
+        self.transform.borrow_mut()
     }
 
     pub fn get_id(&self) -> u64 {
